@@ -8,13 +8,39 @@ from keras.models import load_model
 from keras.preprocessing.text import one_hot
 from keras_preprocessing.sequence import pad_sequences
 from numpy.random import seed
-
+from keras import backend as K
 #setting seed value to avoid discrepancy
 seed(1)
 tensorflow.random.set_seed(2)
 
+
+#custom function for calculating f1 score
+def f1(y_true, y_pred):    
+    def recall_m(y_true, y_pred):
+        TP = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        Positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        
+        recall = TP / (Positives+K.epsilon())    
+        return recall 
+    
+    
+    def precision_m(y_true, y_pred):
+        TP = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        Pred_Positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    
+        precision = TP / (Pred_Positives+K.epsilon())
+        return precision 
+    
+    precision, recall = precision_m(y_true, y_pred), recall_m(y_true, y_pred)
+    
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
+
 app = Flask(__name__)
-model = load_model('model_lstm.h5')
+model = load_model('model_lstm.h5',custom_objects={'f1':f1})
+
+
+
 
 @app.route('/')
 def homescreen():
